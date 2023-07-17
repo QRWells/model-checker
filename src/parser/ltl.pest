@@ -1,0 +1,22 @@
+WHITESPACE = _{ " " | "\t" }
+
+formulae = { SOI ~ formula ~ EOI }
+formula  = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
+
+primary = _{ TRUE | AP | "(" ~ formula ~ ")" }
+infix   = _{ And | Or | Until | Release | WeakUntil | Implies }
+prefix  = _{ Globally | Eventually | Not | Next }
+
+Next       = @{ "X" | "()" }
+And        = @{ "/\\" | "&&" }
+Or         = @{ "\\/" | "||" }
+Implies    = @{ "->" | "=>" }
+Not        = @{ "~" | "!" }
+Until      = @{ "U" }
+Release    = @{ "R" }
+WeakUntil  = @{ "W" }
+Globally   = @{ "G" | "[]" }
+Eventually = @{ "F" | "<>" }
+
+TRUE = @{ "true" }
+AP   = @{ ASCII_ALPHA_LOWER ~ ASCII_ALPHANUMERIC* }
