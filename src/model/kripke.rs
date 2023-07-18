@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::*;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kripke {
     pub states: Vec<State>,
@@ -8,19 +10,22 @@ pub struct Kripke {
     pub initial_state: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct State {
-    pub id: usize,
-    pub name: String,
-}
+impl Model for Kripke {
+    fn get_states(&self) -> &Vec<State> {
+        &self.states
+    }
 
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-pub type Transition = (usize, usize);
+    fn get_transitions(&self) -> &Vec<Transition> {
+        &self.transitions
+    }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Label {
-    pub state: usize,
-    pub labels: Vec<String>,
+    fn get_labels(&self) -> &Vec<Label> {
+        &self.labels
+    }
+
+    fn get_initial_state(&self) -> usize {
+        self.initial_state
+    }
 }
 
 #[cfg(test)]
