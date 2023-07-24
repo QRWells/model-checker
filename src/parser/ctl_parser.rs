@@ -19,7 +19,7 @@ fn ctl_parser() -> &'static PrattParser<Rule> {
             .op(Op::infix(And, Left) | Op::infix(Or, Left) | Op::infix(Implies, Left))
             .op(Op::infix(Until, Right) | Op::infix(WeakUntil, Right) | Op::infix(Release, Right))
             .op(Op::prefix(All) | Op::prefix(Exists))
-            .op(Op::prefix(Not) | Op::prefix(Next))
+            .op(Op::prefix(Not) | Op::prefix(Next) | Op::prefix(Finally) | Op::prefix(Globally))
     })
 }
 
@@ -43,43 +43,52 @@ fn parse_expr(pairs: Pairs<Rule>) -> CTLFormulae {
         })
         .map_infix(|lhs, op, rhs| match op.as_rule() {
             Rule::And => CTLFormulae::And(Box::new(lhs), Box::new(rhs)),
-            Rule::Or => CTLFormulae::And(
-                Box::new(CTLFormulae::Not(Box::new(lhs))),
-                Box::new(CTLFormulae::Not(Box::new(rhs))),
-            ),
+            Rule::Or => CTLFormulae::Or(Box::new(lhs), Box::new(rhs)),
             Rule::Implies => {
-                CTLFormulae::And(Box::new(lhs), Box::new(CTLFormulae::Not(Box::new(rhs))))
+                CTLFormulae::Or(Box::new(CTLFormulae::Not(Box::new(lhs))), Box::new(rhs))
             }
             Rule::Until => CTLFormulae::Until(Box::new(lhs), Box::new(rhs)),
-            Rule::Release => todo!(),
+            Rule::Release => CTLFormulae::Release(Box::new(lhs), Box::new(rhs)),
             Rule::WeakUntil => todo!(),
             _ => unreachable!(),
         })
         .map_prefix(|op, rhs| match op.as_rule() {
             Rule::All => match rhs {
-                CTLFormulae::All(_) | CTLFormulae::Exist(_) => {
-                    eprintln!("Warning: double quantifier");
+                CTLFormulae::All(_)  => {
+                    eprintln!("Warning: repeated quantifier");
                     rhs
                 }
-                CTLFormulae::Next(_) | CTLFormulae::Until(_, _) => CTLFormulae::All(Box::new(rhs)),
+                CTLFormulae::Exist(_) => {
+                    panic!("Cannot mix quantifiers");
+                }
+                CTLFormulae::Next(_)
+                | CTLFormulae::Until(_, _)
+                | CTLFormulae::Globally(_)
+                | CTLFormulae::Release(_, _) => CTLFormulae::All(Box::new(rhs)),
                 _ => {
-                    panic!("Universal quantifier must be followed by a next or until")
+                    panic!("Path quantifier must be followed by a temporal operator")
                 }
             },
             Rule::Exists => match rhs {
-                CTLFormulae::All(_) | CTLFormulae::Exist(_) => {
-                    eprintln!("Warning: double quantifier");
+                CTLFormulae::Exist(_) => {
+                    eprintln!("Warning: repeated quantifier");
                     rhs
                 }
-                CTLFormulae::Next(_) | CTLFormulae::Until(_, _) => {
-                    CTLFormulae::Exist(Box::new(rhs))
+                CTLFormulae::All(_) => {
+                    panic!("Cannot mix quantifiers");
                 }
+                CTLFormulae::Next(_)
+                | CTLFormulae::Until(_, _)
+                | CTLFormulae::Globally(_)
+                | CTLFormulae::Release(_, _) => CTLFormulae::Exist(Box::new(rhs)),
                 _ => {
-                    panic!("Existential quantifier must be followed by a next or until")
+                    panic!("Path quantifier must be followed by a temporal operator")
                 }
             },
             Rule::Next => CTLFormulae::Next(Box::new(rhs)),
             Rule::Not => CTLFormulae::Not(Box::new(rhs)),
+            Rule::Finally => CTLFormulae::Finally(Box::new(rhs)),
+            Rule::Globally => CTLFormulae::Globally(Box::new(rhs)),
             _ => unreachable!(),
         })
         .parse(pairs)

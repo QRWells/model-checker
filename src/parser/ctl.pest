@@ -5,18 +5,20 @@ formula  = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
 
 primary = _{ TRUE | AP | "(" ~ formula ~ ")" }
 infix   = _{ And | Or | Until | Release | WeakUntil | Implies }
-prefix  = _{ All | Exists | Not | Next }
+prefix  = _{ All | Exists | Not | Next | Finally | Globally }
 
-Next      = @{ "X" | "()" }
 And       = @{ "/\\" | "&&" }
 Or        = @{ "\\/" | "||" }
 Implies   = @{ "->" | "=>" }
 Not       = @{ "~" | "!" }
+All       = @{ "A" }
+Exists    = @{ "E" }
+Next      = @{ "X" | "()" }
+Finally   = @{ "F" }
+Globally  = @{ "G" }
 Until     = @{ "U" }
 Release   = @{ "R" }
 WeakUntil = @{ "W" }
-All       = @{ "A" }
-Exists    = @{ "E" }
 
-TRUE = @{ "true" }
-AP   = @{ ASCII_ALPHA_LOWER ~ ASCII_ALPHANUMERIC* }
+TRUE = @{ "true" | "T" }
+AP   = @{ ASCII_ALPHA_LOWER+ }
