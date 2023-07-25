@@ -54,20 +54,14 @@ fn parse_expr(pairs: Pairs<Rule>) -> CTLFormulae {
         })
         .map_prefix(|op, rhs| match op.as_rule() {
             Rule::All => match rhs {
-                CTLFormulae::All(_)  => {
+                CTLFormulae::All(_) => {
                     eprintln!("Warning: repeated quantifier");
                     rhs
                 }
                 CTLFormulae::Exist(_) => {
                     panic!("Cannot mix quantifiers");
                 }
-                CTLFormulae::Next(_)
-                | CTLFormulae::Until(_, _)
-                | CTLFormulae::Globally(_)
-                | CTLFormulae::Release(_, _) => CTLFormulae::All(Box::new(rhs)),
-                _ => {
-                    panic!("Path quantifier must be followed by a temporal operator")
-                }
+                _ => CTLFormulae::All(Box::new(rhs)),
             },
             Rule::Exists => match rhs {
                 CTLFormulae::Exist(_) => {

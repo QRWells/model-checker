@@ -39,7 +39,7 @@ impl Display for CTLFormulae {
     }
 }
 
-impl  CTLFormulae {
+impl CTLFormulae {
     pub fn get_str(&self) -> String {
         match self {
             CTLFormulae::True => "true".to_string(),
@@ -58,32 +58,32 @@ impl  CTLFormulae {
     }
 }
 
-pub fn to_normal_form(formulae: CTLFormulae) -> CTLFormulae {
+pub fn to_normal_form_rec(formulae: CTLFormulae) -> CTLFormulae {
     match formulae {
         CTLFormulae::True | CTLFormulae::Atomic(_) => formulae,
         CTLFormulae::And(f, g) => {
-            let f = Box::new(to_normal_form(*f));
-            let g = Box::new(to_normal_form(*g));
+            let f = Box::new(to_normal_form_rec(*f));
+            let g = Box::new(to_normal_form_rec(*g));
             CTLFormulae::And(f, g)
         }
         CTLFormulae::Or(f, g) => {
-            let f = Box::new(to_normal_form(*f));
-            let g = Box::new(to_normal_form(*g));
+            let f = Box::new(to_normal_form_rec(*f));
+            let g = Box::new(to_normal_form_rec(*g));
             CTLFormulae::Or(f, g)
         }
         CTLFormulae::All(all) => match *all {
             CTLFormulae::Next(f) => CTLFormulae::Not(Box::new(CTLFormulae::Exist(Box::new(
-                CTLFormulae::Next(Box::new(CTLFormulae::Not(Box::new(to_normal_form(*f))))),
+                CTLFormulae::Next(Box::new(CTLFormulae::Not(Box::new(to_normal_form_rec(*f))))),
             )))),
             CTLFormulae::Finally(f) => CTLFormulae::Not(Box::new(CTLFormulae::Exist(Box::new(
-                CTLFormulae::Globally(Box::new(CTLFormulae::Not(Box::new(to_normal_form(*f))))),
+                CTLFormulae::Globally(Box::new(CTLFormulae::Not(Box::new(to_normal_form_rec(*f))))),
             )))),
             CTLFormulae::Globally(f) => CTLFormulae::Not(Box::new(CTLFormulae::Exist(Box::new(
-                CTLFormulae::Finally(Box::new(CTLFormulae::Not(Box::new(to_normal_form(*f))))),
+                CTLFormulae::Finally(Box::new(CTLFormulae::Not(Box::new(to_normal_form_rec(*f))))),
             )))),
             CTLFormulae::Until(f, g) => {
-                let f = Box::new(to_normal_form(*f));
-                let g = Box::new(to_normal_form(*g));
+                let f = Box::new(to_normal_form_rec(*f));
+                let g = Box::new(to_normal_form_rec(*g));
                 CTLFormulae::And(
                     Box::new(CTLFormulae::Not(Box::new(CTLFormulae::Exist(Box::new(
                         CTLFormulae::Until(
@@ -100,50 +100,59 @@ pub fn to_normal_form(formulae: CTLFormulae) -> CTLFormulae {
                 )
             }
             CTLFormulae::Release(f, g) => {
-                let f = Box::new(to_normal_form(*f));
-                let g = Box::new(to_normal_form(*g));
+                let f = Box::new(to_normal_form_rec(*f));
+                let g = Box::new(to_normal_form_rec(*g));
 
                 CTLFormulae::Not(Box::new(CTLFormulae::Exist(Box::new(CTLFormulae::Until(
                     Box::new(CTLFormulae::Not(f)),
                     Box::new(CTLFormulae::Not(g)),
                 )))))
             }
-            _ => to_normal_form(*all),
+            _ => to_normal_form_rec(*all),
         },
         CTLFormulae::Exist(e) => match *e {
-            CTLFormulae::Finally(_) => todo!(),
+            CTLFormulae::Finally(f) => CTLFormulae::Exist(Box::new(CTLFormulae::Until(
+                Box::new(CTLFormulae::True),
+                Box::new(to_normal_form_rec(*f)),
+            ))),
             CTLFormulae::Release(_, _) => todo!(),
-            _ => to_normal_form(*e),
+            _ => CTLFormulae::Exist(Box::new(*e)),
         },
         CTLFormulae::Next(f) => {
-            let f = Box::new(to_normal_form(*f));
+            let f = Box::new(to_normal_form_rec(*f));
             CTLFormulae::Next(f)
         }
         CTLFormulae::Finally(f) => {
-            let f = Box::new(to_normal_form(*f));
+            let f = Box::new(to_normal_form_rec(*f));
             CTLFormulae::Finally(f)
         }
         CTLFormulae::Globally(f) => {
-            let f = Box::new(to_normal_form(*f));
+            let f = Box::new(to_normal_form_rec(*f));
             CTLFormulae::Globally(f)
         }
         CTLFormulae::Until(f, g) => {
-            let f = Box::new(to_normal_form(*f));
-            let g = Box::new(to_normal_form(*g));
+            let f = Box::new(to_normal_form_rec(*f));
+            let g = Box::new(to_normal_form_rec(*g));
             CTLFormulae::Until(f, g)
         }
         CTLFormulae::Release(f, g) => {
-            let f = Box::new(to_normal_form(*f));
-            let g = Box::new(to_normal_form(*g));
+            let f = Box::new(to_normal_form_rec(*f));
+            let g = Box::new(to_normal_form_rec(*g));
             CTLFormulae::Release(f, g)
         }
         CTLFormulae::Not(f) => {
             if let CTLFormulae::Not(f) = *f {
-                to_normal_form(*f)
+                to_normal_form_rec(*f)
             } else {
-                let f = Box::new(to_normal_form(*f));
+                let f = Box::new(to_normal_form_rec(*f));
                 CTLFormulae::Not(f)
             }
         }
     }
+}
+
+pub fn to_normal_form(formulae: CTLFormulae) -> CTLFormulae {
+    let pass1 = to_normal_form_rec(formulae);
+    let pass2 = to_normal_form_rec(pass1);
+    pass2
 }
